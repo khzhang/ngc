@@ -17,7 +17,7 @@ grangerTlasso <-
     X, 					#input array dim=(n,p,T), last time=Y
     d = NULL, 		#number of time lags to consider
     group = NULL,  
-    typeIerr = 0.10, 			#sig level for lambda (...Method=errBased)
+    typeIerr = 0.10, 			#significance level for lambda (...Method=errBased)
     typeIIerr = 0.10,			#acceptable type II error
     weights = weights,  #matrix of weights for Adaptive lasso
     Alasso.power = 1,			#power for Adaptive lasso
@@ -70,13 +70,13 @@ grangerTlasso <-
         XX <- X[,,(tp-jj)]
         
         ##Find the residual as Y # ?(similar to Gauss-Sidel)
-        #? Error in array2mat(X[, , -c(tp - jj, tp)]) %*% theta[i, ] : 
-        #? non-conformable arguments
-        theta <- array2mat(newEst[,,-(tp-jj)])
-        for (i in 1:p){
-          YY[,i] <- Y[,i] -
-            array2mat(X[, , -c(tp-jj,tp)]) %*% theta[i,]
-        }
+        # #? Error in array2mat(X[, , -c(tp - jj, tp)]) %*% theta[i, ] : 
+        # #? non-conformable arguments
+        # theta <- array2mat(newEst[,,-(tp-jj)])
+        # for (i in 1:p){
+        #   YY[,i] <- Y[,i] -
+        #     array2mat(X[, , -c(tp-jj,tp)]) %*% theta[i,]
+        # }
         
         #? Change to below
         theta <- array2mat(newEst[,,-(jj)])
@@ -108,7 +108,7 @@ grangerTlasso <-
 
             newEst[,,(tp-jj)] <- tempp$AA
           }else{
-
+            print(dim(weights))
             W <- (abs(weights[,,(tp-jj)]) + eps*Onep)^(-Alasso.power)
             if (sum(W < 1) > 0){
               W[(W < 1)] <- 1

@@ -1,0 +1,112 @@
+---
+title: "Introduction to gnc"
+author: "KZ"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to ngc}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Install the package
+
+```{r, eval=TRUE}
+# on CRAN
+setwd("~/Documents/GitHub/network_ngc/R")
+source("defn.R")
+source("simulate.r")
+source("array2mat.r")
+source("pldag.set.r")
+source("ngc.r")
+source("grangerLasso.r")
+source("grangerTLasso.r")
+source("grangerThrLasso.r")
+library(glmnet)
+library(gglasso)
+library(igraph)
+```
+# Introduction
+
+`ngc` provides several methods to estimate causal relationships from time-course data and temporal panel data. It mainly implements truncating lasso, adaptively thresholding method, and group lasso regression regularization framework. The truncating lasso penalty can correctly determine the order of the underlying time series, and improves the performance of the lasso-type estimators. Details of the method are available in XXX. 
+
+In this vignette, we demonstrate the `ngc` package using a simulated dataset. `ngc` can handle two different types of the data, either data with $T$ time points and $p$ concurent time series or data with $n$ observations, $T$ time points and $p$ concurent time series. Also, the dataset is the only object that is required for using `ngc`. This package requires the packages attached before using it:
+* glmnet
+* gglasso
+* igraph
+
+
+## Data set-up
+To begin with, we demonstrate how to simulate a set of data from the network using function `defn_net` and `simulate_data`. We first creates the skeleton of a random sparse $d \times p \times p$ network with $0.05$ sparsity and $n$ samples, where $d$ is the number of lags considered to generate time series. In this cases, we consider, $20$ iid samples from the Granger causality network with $10$ variables and $2$ lags, that is $n = 20$, $p = 10$, and $d=2$.
+
+```{r, eval=TRUE, cache=TRUE}
+## Creates the skeleton of a random sparse d x p x p network 
+## with 0.05 sparsity
+set.seed(123)
+d <- 2
+p <- 10
+n <- 20
+edge <- defn_net(d = d, p = p, n = n)
+dim(edge)
+edge[1,,]
+```
+
+Then, we can simulate $n$ iid samples from the Granger causality network we constructed before over $T$ time points. $X$ is a $n \times p \times T$ array. In this example, we set $T= 50$ and the standard deviation of the error term is $0.2$.
+
+```{r, eval=TRUE, cache=TRUE}
+T <- 50
+error_sd <- 0.2
+X <- simulate_data(n, edge, T = T, error_sd = error_sd)
+str(X)
+dim(X)
+```
+
+Users can either load their own data or use our functions to simulate data.
+
+## Methods Implementation
+
+### Lasso
+Now that we have our data set-up properly we can begin with the models. `ngc` has three main models. The default model used in the package is the lasso, which set `method = 'regular'`. We will demonstrate in this section. 
+
+We fit the model using the most basic call to ngc, which estimates graphical Granger causality without group effect. We set the lag $d = 2$.
+```{r, eval=TRUE, cache=TRUE}
+fit1 = ngc(X, d=2)
+```
+
+A summary of the object `fit1` is displayed if we just enter the object name or use the `print` function. It contains lots of information. To save some space, we don't display here. Instead, we use the `name` function to show the possible information returned by the object `fit1`.
+```{r, eval=TRUE, cache=TRUE}
+names(fit1)
+```
+
+`estMat` gives the estimation of the Granger Causality; `lambda` gives the tuning parameter $\lambda$ for each concurrent time series we considered in the first step; `sigma` returns the threshold parameter $\sigma$ we use for the second step of the method; `intercepts` returns the intercept in the estimation procedure; `tsOrder` returns the lags considered in this model; `dag` and `ring` gives the information for estimated the network, and we will use this information for visualization later.
+```{r, eval=TRUE, cache=TRUE}
+fit1$estMat
+fit1$lambda
+fit1$sigma
+fit1$intercepts
+```
+
+To visualize the model, we can simply call the function `plot` or `plot.ngc`. `ngc.type` can be used to select the type of graph to show the Granger causality. The default type is `granger`, which plots the DAG of network. Users can also show the ring graph by specifying `ngc.type = "granger"`.
+```{r, eval=TRUE, cache=TRUE}
+plot(fit1)
+plot.ngc(fit1, ngc.type = "dag")
+plot.ngc(fit1, ngc.type = "granger")
+plot(fit1, ngc.type = "granger")
+```
+
+
+Users can also make predictions at a given time point. For example, if user set $tp = 2$, the output is the fitted covariates at time $T+2$.
+```{r, eval=TRUE, cache=TRUE}
+fit1_pred <- predict(fit1, 2)
+dim(fit1_pred)
+head(fit1_pred)
+```
+
+### Threshold Lasso
+Now we demostrate the usage of threshold lasso model. Users can set `method = 'threshold'`. Use the simulated data above. We fit the model to estimates graphical Granger causality without group effect. 

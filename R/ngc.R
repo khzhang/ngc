@@ -137,7 +137,7 @@ ngc <-
                              thresholdConstant = thresholdConstant,
                              refit = refit)
     }
-    #%%up to here
+    
     dagMat <- Matrix(0, nrow=p*(d+1), ncol=p*(d+1), sparse = TRUE)
     ringMat <- Matrix(0, nrow=p, ncol=p)
     edgeIx <- which(fit$estMat != 0, arr.ind = T)
@@ -256,9 +256,8 @@ plot.ngc <-
 
 #' Predict covariate values at a given time point
 #' @param fit object of class ngc from which to predict
-#' @param X input array of size n x p x T
-#' @param len time point at which to predict covariate values 
-#' e.g. if len = 2, oulenut is fitted covariates at time T+2
+#' @param tp time point at which to predict covariate values 
+#' e.g. if tp = 2, output is fitted covariates at time T+2
 #' @return n x p matrix of fitted covariates for each replicate
 predict.ngc <- 
   function(

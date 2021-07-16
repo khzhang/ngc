@@ -15,9 +15,9 @@ grangerLasso <-
     d = NULL, 	  #number of time lags to consider
     group = NULL, #group indices
     penCoefMethod = 'errBased', #choose between errBased and direct
-    typeIerr = 0.10, 		  #sig level for lambda (...Method=errBased)
+    typeIerr = 0.10, 		  #significance level for lambda (...Method=errBased)
     lambda = NULL,		  #value of lambda (...Method=direct)
-    weights = NULL,			  #matrix of weights for Alasso
+    weights = NULL,			  #matrix of weights for Adaptive lasso
     Alasso.power = 1,		  #power for Adaptive lasso
     eps = 1e-8			  #used for setting small values to zero
   ){

@@ -15,13 +15,13 @@ pldag.set <-
 function(
 	X1,				##predictor set, nxp1 matrix
 	X2, 				##outcome set, nxp2 matrix (X2~X1)
-	group = NULL, #group indices
-	sigLevel = NULL, 		##siglevel for MB & BdE penalties
+	group = NULL, #group indices for variables
+	sigLevel = NULL, 		##significance for MB & BdE penalties
 	useWghts = FALSE,		##use weights for the penalty?
 					##if TRUE, weights should be provided
-	wghts=NULL, 		##wghts for penalty, e.g. Alasso
-	excld=NULL,			##which variabels to exclude (this
-					##is equiv to setting weight=Inf)
+	wghts=NULL, 		##weights for penalty, e.g. Adaptive lasso
+	excld=NULL,			##which variables to exclude (this
+					##is equivalent to setting weight=Inf)
 	wantScale = FALSE,	##whether to scale
 	useNaive=TRUE,		##see below!
 	useTLASSO=FALSE,		##is truncating lasso used?
@@ -42,7 +42,6 @@ function(
 
 	p1 <- dim(X1)[2]
 	p2 <- dim(X2)[2]
-	print(paste(p1, "miao", p2))
 	prdctrIndx = 1:p1
 
 	if (is.null(wghts))
@@ -90,7 +89,8 @@ function(
   {
 		stop("Wrong dimension for variables to exclude")
 	}
-
+  
+	##%% ? double check with lambda in Thrshlasso eq 11. If so, should be nvar^2
 	lambda <- NULL
 	if(!is.null(sigLevel))
 	{
@@ -113,6 +113,8 @@ function(
 		if (length(excldIndx) < p1-1)
 	  {
 		  #estimate sigma with deviance
+		  #sigma is thresholding parameter
+		  ##%% ? not sure how we choose lambda for lasso
 		  if (!is.null(lambda))
 		  {
 		    if (is.null(group))
@@ -128,6 +130,8 @@ function(
 		    betas <- coef(fit1)
 		    intercepts[i] <- betas[1]
 		    betas <- betas[-1]
+		    
+		    ##%% Calculate sigma
 		    dev <- deviance(fit1)
 		    if (!is.null(dev))
 		    {
