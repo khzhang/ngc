@@ -116,6 +116,11 @@ ngc <-
         ngrp = length(unique(group))
         group <- group + rep(seq(0, (d-1)*ngrp, by = ngrp), each = p)
       }
+    } 
+    
+    if (groupByTime)
+    {
+      group <- rep(1:p, d)
     }
 
     if (method == 'regular')
@@ -179,8 +184,8 @@ ngc <-
 plot.ngc <- 
   function(
     fit, #object of class ngc
-    ngc.type = "dag" #"dag" or "granger"
-  ){
+    ngc.type = "dag", #"dag" or "granger"
+  ...){
     if (class(fit) != "ngc")
     {
       stop("Class of argument must be ngc")
@@ -201,7 +206,7 @@ plot.ngc <-
         edgeThickness = E(g)$weight^2/mean(E(g)$weight^2)
       }
       plot(g, layout = layout_in_circle(g), 
-           vertex.shape = "none", edge.width = edgeThickness)
+           vertex.shape = "none", edge.width = edgeThickness, ...)
     }
     else
     {
@@ -240,7 +245,7 @@ plot.ngc <-
            vertex.label = rep(1:p, d+1), vertex.shape = "none",
            edge.color = edgeColor, edge.width = edgeThickness,
            edge.arrow.size = arrowSize, edge.curved = edgeCurvature,
-           rescale = FALSE, xlim = c(1, d+1), ylim = c(0, p))
+           rescale = FALSE, xlim = c(1, d+1), ylim = c(0, p), ...)
       text(0, -0.5, "Lag", cex = labelCex)
       lagStep <- ifelse(d < 10, 1, 5)
       for (i in seq(lagStep, d, lagStep))

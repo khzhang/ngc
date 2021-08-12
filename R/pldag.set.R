@@ -11,6 +11,15 @@
 #' @param useTLASSO whether to use the truncating lasso
 #' @param d number of time lags to consider
 #' @return a list including fitted coefficients and the final lambda value
+
+# X1 = XX
+# X2 = YY
+# group = group
+# sigLevel=typeIerr
+# useWghts=TRUE
+# wghts=W
+# wantScale=TRUE
+
 pldag.set <-
 function(
 	X1,				##predictor set, nxp1 matrix
@@ -94,7 +103,8 @@ function(
 	lambda <- NULL
 	if(!is.null(sigLevel))
 	{
-    lambda <- (1/sqrt(n))*qnorm(1-sigLevel/(2*ncov*nvar))
+	  # lambda <- (1/sqrt(n))*qnorm(1-sigLevel/(2*ncov*nvar))
+    lambda <- (1/sqrt(n))*qnorm(1-sigLevel/(2*ncov*nvar^2))
 	}
 
 	lambdas <- rep(NA, p2)
@@ -148,11 +158,11 @@ function(
 		    if (is.null(group))
 		    {
 		      fit1 <- cv.glmnet(X1, y, penalty.factor = ww,
-		                        standardize = wantScale, exclude = excldIndx)
+		                        standardize = wantScale, exclude = excldIndx, nfolds = 5)
 		    }
 		    else
 		    {
-		      fit1 <- cv.gglasso(X1, y, group = sort(group), pred.loss = "L1", pf  = ww)
+		      fit1 <- cv.gglasso(X1, y, group = sort(group), pred.loss = "L1", pf  = ww, nfolds = 5)
 		    }
 		    lambdas[i] <- fit1$lambda.1se
 		    betas <- coef(fit1, s="lambda.1se")

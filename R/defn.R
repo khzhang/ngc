@@ -10,7 +10,8 @@ defn_net =
     d,
     p,
     n,
-    grp = NULL
+    grp = NULL, 
+    sparsity = NULL
   ){
     if (is.null(grp))
     {
@@ -20,8 +21,12 @@ defn_net =
     weight = c(1, 1, 1)
     signum = c(1, -1)
     grpCt = length(unique(grp))
-    sparsity = max(min((n/(d*grpCt*p)), (0.05)), 0.01)
+    
+    if (is.null(sparsity)) {
+      sparsity = max(min((n/(d*grpCt*p)), (0.05)), 0.01)
+    }
     cat(paste("sparsity =", round(sparsity, 4)))
+    
     for (ii in 1:d){
       for (i in 1:p){
         for (j in unique(grp)){
