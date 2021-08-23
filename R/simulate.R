@@ -11,7 +11,7 @@ simulate_data <-
     n,
     edge,
     T,
-    error_sd = 1,
+    error_sd = 0.1,
     cutt = 30
   ){
     d <- dim(edge)[1]

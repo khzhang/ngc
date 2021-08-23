@@ -104,7 +104,7 @@ function(
 	if(!is.null(sigLevel))
 	{
 	  # lambda <- (1/sqrt(n))*qnorm(1-sigLevel/(2*ncov*nvar))
-    lambda <- (1/sqrt(n))*qnorm(1-sigLevel/(2*ncov*nvar^2))
+    lambda <- 0.6*(1/sqrt(n))*qnorm(1-sigLevel/(2*ncov*nvar^2))
 	}
 
 	lambdas <- rep(NA, p2)

@@ -78,13 +78,14 @@ profvis({
 
 group = c(rep(1,5),rep(2,5))
 profvis({
-  fit1 = ngc(X, d = d, method = 'regular', typeIerr = 0.05, group = group, groupByTime = TRUE)
+  fit1 = ngc(X, d = d, method = 'threshold', typeIerr = 0.05, group = group, groupByTime = TRUE)
   plot.ngc(fit1, ngc.type = "dag")
   fit1_pred = predict(fit1, 2)
 })
 
 profvis({
-  fit1 = ngc(X, d=d, method = 'regular', group = group, groupByTime = TRUE)
+  fit1 = ngc(X, d=d, method = 'threshold', group = group, groupByTime = TRUE)
   plot.ngc(fit1, ngc.type = "dag")
   fit1_pred = predict(fit1, 2)
 })
+

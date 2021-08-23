@@ -11,7 +11,8 @@ defn_net =
     p,
     n,
     grp = NULL, 
-    sparsity = NULL
+    sparsity = NULL,
+    grp_sparsity = 0.5
   ){
     if (is.null(grp))
     {
@@ -27,12 +28,22 @@ defn_net =
     }
     cat(paste("sparsity =", round(sparsity, 4)))
     
-    for (ii in 1:d){
-      for (i in 1:p){
-        for (j in unique(grp)){
-            edge[ii, i, grp == j] = ((runif(1, 0, 1)< sparsity))*sample(weight, 1)*sample(signum, 1)
+    num_sel = ceiling(sparsity*(d*p*p))
+    
+    if (any(grp != 1:p)) {
+      grp_sel = sample(1:grpCt, floor(grpCt * grp_sparsity))
+      j_grp = which(grp %in% grp_sel)
+      num_pergrp = floor(num_sel / length(j_grp) )
+      
+      for (j in j_grp){
+        ind_sel = sample(((j-1)*p*d+1):(d*p*j), num_pergrp)
+        edge[ind_sel] = sample(signum, num_pergrp, replace = TRUE) * 0.5
         }
-      }
+      } else {
+        ind_sel = sample(1:(p*p*d), num_sel)
+        edge[ind_sel] = sample(signum, num_sel, replace = TRUE)* 0.5
     }
+    
+    
     return(edge)
   }

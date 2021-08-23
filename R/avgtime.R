@@ -1,4 +1,5 @@
 setwd("/Users/xinyi/Documents/GitHub/network_ngc/R")
+rm(list =ls())
 library('microbenchmark')
 source("defn.R")
 source("simulate.r")
@@ -21,14 +22,15 @@ library(xtable)
 set.seed(123)
 d <- 2
 p <- 10
-n <- 50
-edge = defn_net(d = d, p = p, n = n, sparsity = 0.1)
-set.seed(123)
+n <- 30
+edge = defn_net(d = d, p = p, n = n, sparsity = NULL)
 grp = c(rep(1,5),rep(2,5))
-edge_grp = defn_net(d = d, p = p, n = n, grp = grp, sparsity = 0.1)
-microbenchmark(defn_net(d = d, p = p, n = n), times=10)
-phi_true = array(c(edge[2,,],edge[1,,]), dim = c(10,10,2))
-phi_true_grp = array(c((edge_grp[2,,]),(edge_grp[1,,])), dim = c(10,10,2))
+set.seed(123)
+edge_grp = defn_net(d = d, p = p, n = n, grp = grp, sparsity = NULL)
+# microbenchmark(defn_net(d = d, p = p, n = n), times=10)
+
+phi_true = array(c(edge[2,,],edge[1,,]), dim = c(p,p,d))
+phi_true_grp = array(c((edge_grp[2,,]),(edge_grp[1,,])), dim = c(p,p,d))
 
 # Unit: milliseconds
 #    min       lq     mean   median
@@ -45,8 +47,8 @@ T <- 300
 error_sd <- 0.2
 X <- simulate_data(n, edge, T = T, error_sd = error_sd)
 X_grp <- simulate_data(n, edge_grp, T = T, error_sd = error_sd)
-microbenchmark(simulate_data(n, edge, T = T, error_sd = error_sd),
-               times=10)
+# microbenchmark(simulate_data(n, edge, T = T, error_sd = error_sd),
+               # times=10)
 
 # Unit: milliseconds
 #    min       lq    mean   median       uq      max    neval
@@ -54,12 +56,11 @@ microbenchmark(simulate_data(n, edge, T = T, error_sd = error_sd),
 
 ###############
 ## Estimate graphical Granger causality without group effect
-
 # regular
 fit1 = ngc(X, d = d, method = 'regular', typeIerr = 0.05)
-set.seed(123)
-microbenchmark(ngc(X, d = d, method = 'regular', typeIerr = 0.02), 
-               times = 10)
+# set.seed(123)
+# microbenchmark(ngc(X, d = d, method = 'regular', typeIerr = 0.02), 
+#                times = 10)
 xtable(checkEstimation(phi_true, fit1$estMat, method_name = "Lasso")$metrics,)
 
 fit1 = ngc(X, d = d, method = 'regular')
@@ -73,8 +74,8 @@ xtable(checkEstimation(phi_true, fit1$estMat, method_name = "Lasso")$metrics,)
 # regular with grouping by matrices
 group = c(rep(1,5),rep(2,5))
 fit12 = ngc(X, d = d, method = 'regular', typeIerr = 0.02, group = group)
-microbenchmark(ngc(X, d = d, method = 'regular', typeIerr = 0.02, group = group), 
-               times = 10)
+# microbenchmark(ngc(X, d = d, method = 'regular', typeIerr = 0.02, group = group), 
+#                times = 10)
 
 # Unit: milliseconds
 #   min      lq        mean   median       uq      max    neval
@@ -83,10 +84,12 @@ xtable(checkEstimation(phi_true, fit12$estMat, method_name = "Lasso")$metrics)
 
 # regular with grouping by time
 fit13 = ngc(X, d = d, method = 'regular', typeIerr = 0.02, group = group, groupByTime = TRUE)
+xtable(checkEstimation(phi_true, fit13$estMat, method_name = "Lasso")$metrics)
+
 # regular with grouping by time without grouping by states
 fit13 = ngc(X, d = d, method = 'regular', typeIerr = 0.02, groupByTime = TRUE)
-microbenchmark(ngc(X, d = d, method = 'regular', typeIerr = 0.02, group = group, groupByTime = TRUE), 
-               times = 10)
+# microbenchmark(ngc(X, d = d, method = 'regular', typeIerr = 0.02, group = group, groupByTime = TRUE), 
+               # times = 10)
 # Unit: milliseconds
 #   min      lq        mean   median       uq      max    neval
 #  112.6255 118.404 125.5603 122.6254 130.919  152.1969    10

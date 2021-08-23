@@ -13,6 +13,7 @@
 #' @param covNames covariate names
 #' @return a list including a matrix of estimated coefficients, final lambda value, and time series order estimate
 #' @export ngc
+
 ngc <-
   function(
     X, #input array dim=(n,p,T) (longitudinal), or (p,T) (time series); last time=Y %%what is Y?
@@ -143,8 +144,7 @@ ngc <-
                              refit = refit)
     }
     
-    dagMat <- Matrix(0, nrow=p*(d+1), ncol=p*(d+1), sparse = TRUE)
-    ringMat <- Matrix(0, nrow=p, ncol=p)
+    
     edgeIx <- which(fit$estMat != 0, arr.ind = T)
     edgeCount <- dim(edgeIx)[1]
     if (is.null(fit$tsOrder))
@@ -152,18 +152,39 @@ ngc <-
       tsOrder <- ifelse(edgeCount > 0, max(d-edgeIx[,3]+1), 0)
       fit$tsOrder <- ifelse(!is.null(tsOrder), tsOrder, 0)
     }
+    
+    if (fit$tsOrder == 0){
+      dagMat <- Matrix(0, nrow=p*(d+1), ncol=p*(d+1), sparse = TRUE)
+      ringMat <- Matrix(0, nrow=p, ncol=p)
+      edgeIx2 = edgeIx
+    } else {
+      edgeIx2 <- (which(fit$estMat[,,dim(fit$estMat)[3]+1-seq(fit$tsOrder,1,-1)] != 0, arr.ind = T))
+      if (ncol(edgeIx2) != 3) {
+        edgeIx2 <- cbind(edgeIx2, 1)
+      }
+      dagMat <- Matrix(0, nrow=p*(fit$tsOrder+1), ncol=p*(fit$tsOrder+1), sparse = TRUE)
+      ringMat <- Matrix(0, nrow=p, ncol=p)
+    }
+    
+    # dagMat <- Matrix(0, nrow=p*(d+1), ncol=p*(d+1), sparse = TRUE)
+    # ringMat <- Matrix(0, nrow=p, ncol=p)
+    
     if (edgeCount > 0)
     {
       for (i in 1:edgeCount)
       {
+        # print(i)
         edge <- edgeIx[i,]
+        edge2 <- edgeIx2[i,]
         pStart <- edge[2]
         pEnd <- edge[1]
         lag <- edge[3]
-        dagMat[((lag-1)*p + pStart),(d*p + pEnd)] <- fit$estMat[pEnd, pStart, lag]
+        
+        dagMat[((edge2[3]-1)*p + pStart),(fit$tsOrder*p + pEnd)] <- fit$estMat[pEnd, pStart, lag]
         ringMat[pStart, pEnd] <- ringMat[pStart, pEnd] + fit$estMat[pEnd, pStart, lag]^2
       } 
     }
+    
     fit$dag <- graph_from_adjacency_matrix(dagMat, mode = 'directed', weighted = TRUE)
     fit$ring <- graph_from_adjacency_matrix(sqrt(ringMat), mode = 'directed', weighted = TRUE)
     fit$method <- method
@@ -191,7 +212,7 @@ plot.ngc <-
       stop("Class of argument must be ngc")
     }
     p <- fit$p
-    d <- fit$d
+    d <- fit$tsOrder
     covNames <- fit$covNames
     group <- fit$group
     if (ngc.type == "granger")
@@ -203,58 +224,69 @@ plot.ngc <-
       }
       else
       {
-        edgeThickness = E(g)$weight^2/mean(E(g)$weight^2)
+        edgeThickness = scale(E(g)$weight^2/mean(E(g)$weight^2),scale = T)*100
       }
-      plot(g, layout = layout_in_circle(g), 
-           vertex.shape = "none", edge.width = edgeThickness, ...)
+      edgeThickness <- ifelse(edgeThickness > 0.5, edgeThickness, 0.5)
+      edgeThickness <- ifelse(edgeThickness < 2, edgeThickness, 2)
+      labelCex <- max(min(10/p, 1), 0.3)
+      aRatio <- (d/p)/2
+      arrowSize <- 0.3*labelCex
+      par(mar=c(0.5, 0.5, 0.5, 1.5))
+      plot(g, layout = layout_in_circle(g), asp = aRatio,edge.arrow.size = arrowSize,
+           vertex.shape = "none", cex = 1.2, edge.width = edgeThickness, ...)
     }
     else
     {
       xcoords = rep(1:(d+1), each=p)
       ycoords = rep(p:1, d+1)
-      layout_matrix = matrix(c(xcoords, ycoords), ncol=2)
       g <- fit$dag
-      groupList <- NULL
-      if (!is.null(group))
-      {
-        groupList <- lapply(unique(group),function(x){which(group==x)})
-      }
-      par(mar=c(2.5, 2.5, 2.5, 2.5))
-      edgeColor = ifelse(E(g)$weight > 0, "blue", "red")
-      if (is.null(E(g)$weight))
-      {
-        edgeThickness = 0
-      }
-      else
-      {
-        edgeThickness <- E(g)$weight^2/mean(E(g)$weight^2)
-      }
-      #control maximum and minimum thickness
-      edgeThickness <- ifelse(edgeThickness > 0.2, edgeThickness, 0.2)
-      edgeThickness <- ifelse(edgeThickness < 5, edgeThickness, 5)
-      labelCex <- max(min(10/p, 1), 0.3)
-      arrowSize <- 0.5*labelCex
-      #curve edges that are more than 1 lag
-      edgeTails <- tail_of(g, E(g))
-      edgeCurvature <- (edgeTails <= p*(d-1))*0.25
-      edgeCurvature <- edgeCurvature*(-1)^((head_of(g, E(g)) %% p) < (edgeTails %% p))
-      aRatio <- (d/p)/2
-      plot(g, asp = aRatio, layout = layout_matrix,
-           mark.groups = groupList, mark.border = NA,
-           vertex.label.cex = labelCex,
-           vertex.label = rep(1:p, d+1), vertex.shape = "none",
-           edge.color = edgeColor, edge.width = edgeThickness,
-           edge.arrow.size = arrowSize, edge.curved = edgeCurvature,
-           rescale = FALSE, xlim = c(1, d+1), ylim = c(0, p), ...)
-      text(0, -0.5, "Lag", cex = labelCex)
-      lagStep <- ifelse(d < 10, 1, 5)
-      for (i in seq(lagStep, d, lagStep))
-      {
-        text(i, -0.5, d-i+1, cex = labelCex)
-      }
-      if (!is.null(covNames))
-      {
-        legend(d+1+2*aRatio, p+0.5, paste(1:p, covNames, sep = " - "), cex = labelCex, ncol = p%/%10 + 1, title = "Legend")
+      if (d != 0 ){
+        layout_matrix = matrix(c(xcoords, ycoords), ncol=2)
+        
+        groupList <- NULL
+        if (!is.null(group))
+        {
+          groupList <- lapply(unique(group),function(x){which(group==x)})
+        }
+        par(mar=c(1.5, 0.5, 0.5, 1.5))
+        edgeColor = ifelse(E(g)$weight > 0, "blue", "red")
+        if (is.null(E(g)$weight))
+        {
+          edgeThickness = 0
+        }
+        else
+        {
+          edgeThickness <- scale(E(g)$weight^2/mean(E(g)$weight^2),scale = T)*100
+        }
+        #control maximum and minimum thickness
+        edgeThickness <- ifelse(edgeThickness > 0.5, edgeThickness, 0.5)
+        edgeThickness <- ifelse(edgeThickness < 2, edgeThickness, 2)
+        labelCex <- max(min(10/p, 1), 0.3)
+        arrowSize <- 0.3*labelCex
+        #curve edges that are more than 1 lag
+        edgeTails <- tail_of(g, E(g))
+        edgeCurvature <- (edgeTails <= p*(d-1))*0.25
+        edgeCurvature <- edgeCurvature*(-1)^((head_of(g, E(g)) %% p) < (edgeTails %% p))
+        aRatio <- (d/p)/2
+        plot(g, asp = aRatio, layout = layout_matrix,
+             mark.groups = groupList, mark.border = NA,
+             vertex.label.cex = labelCex * 0.6,
+             vertex.label = rep(1:p, d+1), vertex.shape = "none",
+             edge.color = edgeColor, edge.width = edgeThickness,
+             edge.arrow.size = arrowSize, edge.curved = edgeCurvature,
+             rescale = FALSE, xlim = c(1, d+1), ylim = c(0, p), ...)
+        text(0, -0.5, "Lag", cex = labelCex)
+        lagStep <- ifelse(d < 10, 1, 5)
+        for (i in seq(lagStep, d, lagStep))
+        {
+          text(i, -0.5, d-i+1, cex = labelCex*0.6)
+        }
+        if (!is.null(covNames))
+        {
+          legend(d+1+2*aRatio, p+0.5, paste(1:p, covNames, sep = " - "), cex = labelCex, ncol = p%/%10 + 1, title = "Legend")
+        }
+      } else {
+        plot(g,...)
       }
     }
   }

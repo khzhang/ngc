@@ -408,20 +408,42 @@ library(igraph)</code></pre>
 <div id="data-generation" class="section level2">
 <h2>Data Generation</h2>
 <p>We first create the skeleton of a random sparse <span class="math inline">\(d \times p \times p\)</span> network, with group and without group. The time to generate the edges without group is listed below:</p>
+<pre class="r"><code>## Creates the skeleton of a random sparse d x p x p network 
+## with 0.1 sparsity
+set.seed(123)
+d &lt;- 2
+p &lt;- 16
+n &lt;- 10
+edge = defn_net(d = d, p = p, n = n, sparsity = 0.1)</code></pre>
 <pre><code>## sparsity = 0.1</code></pre>
+<pre class="r"><code>set.seed(123)
+grp = c(rep(1,8),rep(2,8))
+edge_grp = defn_net(d = d, p = p, n = n, grp = grp, sparsity = 0.1)</code></pre>
 <pre><code>## sparsity = 0.1</code></pre>
-<pre><code>## sparsity = 0.05sparsity = 0.05sparsity = 0.05sparsity = 0.05sparsity = 0.05sparsity = 0.05sparsity = 0.05sparsity = 0.05sparsity = 0.05sparsity = 0.05</code></pre>
-<pre><code>## Unit: milliseconds
-##                           expr      min       lq     mean   median       uq
-##  defn_net(d = d, p = p, n = n) 2.266665 2.438203 2.755195 2.892066 2.958397
-##      max neval
-##  3.17302    10</code></pre>
+<pre class="r"><code>microbenchmark(defn_net(d = d, p = p, n = n), times=10)</code></pre>
+<pre><code>## sparsity = 0.0195sparsity = 0.0195sparsity = 0.0195sparsity = 0.0195sparsity = 0.0195sparsity = 0.0195sparsity = 0.0195sparsity = 0.0195sparsity = 0.0195sparsity = 0.0195</code></pre>
+<pre><code>## Unit: microseconds
+##                           expr min  lq mean median  uq max neval
+##  defn_net(d = d, p = p, n = n)  73 100  183    117 182 716    10</code></pre>
+<pre class="r"><code>phi_true = array(c((edge[2,,]),(edge[1,,])), dim = c(p,p,d))
+phi_true_grp = array(c((edge_grp[2,,]),(edge_grp[1,,])), dim = c(p,p,d))</code></pre>
 <p>Then, we simulate <span class="math inline">\(n\)</span> iid samples from the Granger causality network with <span class="math inline">\(p = 10\)</span> variables observed over <span class="math inline">\(T = 50\)</span> time points and the standard error equal to <span class="math inline">\(0.2\)</span>. <span class="math inline">\(X\)</span> is a <span class="math inline">\(n \times p \times T\)</span> array. The time to generate the data without group is listed below:</p>
+<pre class="r"><code>###############
+## Simulate n iid samples from the granger causality network 
+## with p variables observed over T time points
+## X is a n x p x T array
+set.seed(123)
+T &lt;- 20
+error_sd &lt;- 0.1
+X &lt;- simulate_data(n, edge, T = T, error_sd = error_sd)
+X_grp &lt;- simulate_data(n, edge_grp, T = T, error_sd = error_sd)
+microbenchmark(simulate_data(n, edge, T = T, error_sd = error_sd),
+               times=10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                                expr      min       lq    mean
-##  simulate_data(n, edge, T = T, error_sd = error_sd) 27.18174 28.96675 33.7611
-##    median       uq      max neval
-##  32.94815 39.20064 41.84905    10</code></pre>
+##                                                expr min lq mean median uq max
+##  simulate_data(n, edge, T = T, error_sd = error_sd)  13 14   16     14 16  25
+##  neval
+##     10</code></pre>
 </div>
 <div id="methods" class="section level2">
 <h2>Methods</h2>
@@ -433,66 +455,70 @@ library(igraph)</code></pre>
 microbenchmark(ngc(X, d = d, method = &#39;regular&#39;, typeIerr = 0.02), 
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                                expr      min       lq     mean
-##  ngc(X, d = d, method = &quot;regular&quot;, typeIerr = 0.02) 38.38794 38.79347 40.27947
-##   median       uq      max neval
-##  39.7912 41.28699 43.13862    10</code></pre>
+##                                                expr min lq mean median uq max
+##  ngc(X, d = d, method = &quot;regular&quot;, typeIerr = 0.02)  58 60   62     61 63  65
+##  neval
+##     10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit1$estMat, method_name = &quot;Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]    [,2]            [,3]    [,4]  
-## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot; 
-## [2,] &quot;0.222&quot; &quot;4.438&quot;         &quot;0.006&quot; &quot;0.15&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]    [,4]   
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;  
+## [2,] &quot;0.276&quot; &quot;3.589&quot;         &quot;0.009&quot; &quot;0.115&quot;</code></pre>
+<p>Then, we also check the results with lamnda selected by cross validation.</p>
+<pre class="r"><code>fit1 = ngc(X, d = d, method = &#39;regular&#39;)
+checkEstimation(phi_true, fit1$estMat, method_name = &quot;Lasso&quot;)$metrics</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]    [,4]   
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;  
+## [2,] &quot;0.267&quot; &quot;3.47&quot;          &quot;0.076&quot; &quot;0.231&quot;</code></pre>
 <div id="regular-lasso-with-grouping" class="section level4">
 <h4>Regular lasso with grouping</h4>
-<p>Apply stardard Lasso approach without specifying group with the none group data. The time and metrics are listed below:</p>
-<pre class="r"><code>group = c(rep(1,5),rep(2,5))
+<p>Apply standard Lasso approach without specifying group with the none group data. The time and metrics are listed below:</p>
+<pre class="r"><code>group = c(rep(1,8),rep(2,8))
 fit12 = ngc(X, d = d, method = &#39;regular&#39;, typeIerr = 0.02, group = group)
 microbenchmark(ngc(X, d = d, method = &#39;regular&#39;, typeIerr = 0.02, group = group), 
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                                               expr      min
-##  ngc(X, d = d, method = &quot;regular&quot;, typeIerr = 0.02, group = group) 73.51459
-##        lq     mean   median       uq      max neval
-##  77.01112 78.32176 78.39238 80.00556 82.01757    10</code></pre>
+##                                                               expr min lq mean
+##  ngc(X, d = d, method = &quot;regular&quot;, typeIerr = 0.02, group = group)  40 42   49
+##  median uq max neval
+##      46 60  61    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit12$estMat, method_name = &quot;Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]    [,2]            [,3]    [,4] 
-## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;
-## [2,] &quot;0.357&quot; &quot;7.139&quot;         &quot;0.161&quot; &quot;0.3&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]  [,4] 
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <p>Apply stardard Lasso approach without specifying group with the group data. The time and metrics are listed below:</p>
-<pre class="r"><code>group = c(rep(1,5),rep(2,5))
-fit12 = ngc(X_grp, d = d, method = &#39;regular&#39;, typeIerr = 0.02, group = group)
+<pre class="r"><code>fit12 = ngc(X_grp, d = d, method = &#39;regular&#39;, typeIerr = 0.02, group = group)
 microbenchmark(ngc(X_grp, d = d, method = &#39;regular&#39;, typeIerr = 0.02, group = group), 
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                                                   expr      min
-##  ngc(X_grp, d = d, method = &quot;regular&quot;, typeIerr = 0.02, group = group) 107.6508
-##        lq     mean   median       uq      max neval
-##  108.0309 113.0739 109.7879 117.6182 124.0351    10</code></pre>
+##                                                                   expr min  lq
+##  ngc(X_grp, d = d, method = &quot;regular&quot;, typeIerr = 0.02, group = group) 267 268
+##  mean median  uq max neval
+##   286    275 284 374    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true_grp, fit12$estMat, method_name = &quot;Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]                   [,2]                   [,3]    [,4] 
-## [1,] &quot;REE&quot;                  &quot;Fobinius Norm&quot;        &quot;FPR&quot;   &quot;TPR&quot;
-## [2,] &quot;3.47609501553564e+21&quot; &quot;3.47609501553564e+22&quot; &quot;0.053&quot; &quot;1&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]   [,4]   
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;  &quot;TPR&quot;  
+## [2,] &quot;0.761&quot; &quot;9.127&quot;         &quot;0.33&quot; &quot;0.312&quot;</code></pre>
 </div>
 <div id="regular-lasso-with-grouping-by-time" class="section level4">
 <h4>Regular lasso with grouping by time</h4>
 <p>Apply stardard Lasso approach without specifying group with the none group data. The time and metrics are listed below:</p>
-<pre class="r"><code>group = c(rep(1,5),rep(2,5))
-fit13 = ngc(X, d = d, method = &#39;regular&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE)
+<pre class="r"><code>fit13 = ngc(X, d = d, method = &#39;regular&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE)
 microbenchmark(ngc(X, d = d, method = &#39;regular&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE), 
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
 ##                                                                                        expr
 ##  ngc(X, d = d, method = &quot;regular&quot;, typeIerr = 0.02, group = group,      groupByTime = TRUE)
-##      min       lq     mean   median       uq      max neval
-##  70.3044 71.82172 73.20558 72.91324 74.67474 77.18973    10</code></pre>
+##  min lq mean median uq max neval
+##   70 73   73     73 74  76    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit13$estMat, method_name = &quot;Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]    [,2]            [,3]    [,4] 
-## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;
-## [2,] &quot;0.425&quot; &quot;8.505&quot;         &quot;0.078&quot; &quot;0.2&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]  [,4] 
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <pre class="r"><code>fit132 = ngc(X, d = d, method = &#39;regular&#39;, typeIerr = 0.02, groupByTime = TRUE)
 checkEstimation(phi_true, fit132$estMat, method_name = &quot;Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]    [,2]            [,3]    [,4] 
-## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;
-## [2,] &quot;0.425&quot; &quot;8.505&quot;         &quot;0.078&quot; &quot;0.2&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]  [,4] 
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <p>Apply stardard Lasso approach without specifying group with the group data. The time and metrics are listed below:</p>
 <pre class="r"><code>fit13 = ngc(X_grp, d = d, method = &#39;regular&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE)
 microbenchmark(ngc(X_grp, d = d, method = &#39;regular&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE), 
@@ -500,17 +526,17 @@ microbenchmark(ngc(X_grp, d = d, method = &#39;regular&#39;, typeIerr = 0.02, gr
 <pre><code>## Unit: milliseconds
 ##                                                                                            expr
 ##  ngc(X_grp, d = d, method = &quot;regular&quot;, typeIerr = 0.02, group = group,      groupByTime = TRUE)
-##       min       lq     mean   median       uq      max neval
-##  111.0588 115.1352 115.9239 116.5144 117.6574 118.3818    10</code></pre>
+##  min  lq mean median  uq max neval
+##  169 172  174    173 179 180    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true_grp, fit13$estMat, method_name = &quot;Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]                   [,2]                   [,3]    [,4] 
-## [1,] &quot;REE&quot;                  &quot;Fobinius Norm&quot;        &quot;FPR&quot;   &quot;TPR&quot;
-## [2,] &quot;3.85454297856408e+21&quot; &quot;3.85454297856408e+22&quot; &quot;0.053&quot; &quot;1&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]    [,4]   
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;  
+## [2,] &quot;1.208&quot; &quot;14.498&quot;        &quot;0.116&quot; &quot;0.083&quot;</code></pre>
 <pre class="r"><code>fit132 = ngc(X_grp, d = d, method = &#39;regular&#39;, typeIerr = 0.02, groupByTime = TRUE)
 checkEstimation(phi_true, fit132$estMat, method_name = &quot;Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]                   [,2]                   [,3]    [,4]  
-## [1,] &quot;REE&quot;                  &quot;Fobinius Norm&quot;        &quot;FPR&quot;   &quot;TPR&quot; 
-## [2,] &quot;1.92727148928204e+21&quot; &quot;3.85454297856408e+22&quot; &quot;0.094&quot; &quot;0.15&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]    [,4]   
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;  
+## [2,] &quot;1.103&quot; &quot;14.343&quot;        &quot;0.113&quot; &quot;0.115&quot;</code></pre>
 </div>
 </div>
 <div id="thresholded-lasso" class="section level3">
@@ -520,44 +546,42 @@ checkEstimation(phi_true, fit132$estMat, method_name = &quot;Lasso&quot;)$metric
 microbenchmark(ngc(X, d = d, method = &#39;threshold&#39;, typeIerr = 0.02),
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                                  expr      min       lq
-##  ngc(X, d = d, method = &quot;threshold&quot;, typeIerr = 0.02) 42.21571 44.21143
-##      mean   median      uq      max neval
-##  46.96202 45.22062 48.4096 59.14731    10</code></pre>
+##                                                  expr min lq mean median uq max
+##  ngc(X, d = d, method = &quot;threshold&quot;, typeIerr = 0.02)  61 62   65     64 68  69
+##  neval
+##     10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit2$estMat, method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
 <pre><code>##      [,1]    [,2]            [,3]  [,4] 
 ## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
-## [2,] &quot;0.224&quot; &quot;4.472&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <div id="thresholded-lasso-with-grouping" class="section level4">
 <h4>Thresholded Lasso with grouping</h4>
 <p>Apply thresholded Lasso approach without specifying group with the none group data. The time and metrics are listed below:</p>
-<pre class="r"><code>group = c(rep(1,5),rep(2,5))
-fit22 = ngc(X, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, group = group)
+<pre class="r"><code>fit22 = ngc(X, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, group = group)
 microbenchmark(ngc(X, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, group = group), 
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                                                 expr      min
-##  ngc(X, d = d, method = &quot;threshold&quot;, typeIerr = 0.02, group = group) 321.9519
-##        lq     mean   median       uq      max neval
-##  329.8964 343.6441 340.6909 359.4039 366.5439    10</code></pre>
+##                                                                 expr min lq
+##  ngc(X, d = d, method = &quot;threshold&quot;, typeIerr = 0.02, group = group)  53 57
+##  mean median uq max neval
+##    64     60 77  78    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit22$estMat, method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]    [,2]            [,3]    [,4]  
-## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot; 
-## [2,] &quot;0.357&quot; &quot;7.15&quot;          &quot;0.122&quot; &quot;0.25&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]  [,4] 
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <p>Apply thresholded Lasso approach without specifying group with the group data. The time and metrics are listed below:</p>
-<pre class="r"><code>group = c(rep(1,5),rep(2,5))
-fit22 = ngc(X_grp, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, group = group)
+<pre class="r"><code>fit22 = ngc(X_grp, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, group = group)
 microbenchmark(ngc(X_grp, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, group = group), 
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                                                     expr
-##  ngc(X_grp, d = d, method = &quot;threshold&quot;, typeIerr = 0.02, group = group)
-##      min       lq     mean   median       uq      max neval
-##  165.971 172.6625 174.9559 174.6118 176.9046 183.0933    10</code></pre>
+##                                                                     expr min
+##  ngc(X_grp, d = d, method = &quot;threshold&quot;, typeIerr = 0.02, group = group) 563
+##   lq mean median  uq max neval
+##  584  618    610 661 693    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true_grp, fit22$estMat, method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]                   [,2]                   [,3]    [,4] 
-## [1,] &quot;REE&quot;                  &quot;Fobinius Norm&quot;        &quot;FPR&quot;   &quot;TPR&quot;
-## [2,] &quot;3.47609501553564e+21&quot; &quot;3.47609501553564e+22&quot; &quot;0.053&quot; &quot;1&quot;</code></pre>
+<pre><code>##      [,1]  [,2]            [,3]    [,4]   
+## [1,] &quot;REE&quot; &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;  
+## [2,] &quot;0.7&quot; &quot;8.404&quot;         &quot;0.052&quot; &quot;0.062&quot;</code></pre>
 </div>
 <div id="thresholded-lasso-with-grouping-by-time" class="section level4">
 <h4>Thresholded Lasso with grouping by time</h4>
@@ -568,17 +592,17 @@ microbenchmark(ngc(X, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, grou
 <pre><code>## Unit: milliseconds
 ##                                                                                          expr
 ##  ngc(X, d = d, method = &quot;threshold&quot;, typeIerr = 0.02, group = group,      groupByTime = TRUE)
-##      min       lq     mean   median       uq     max neval
-##  322.503 324.6628 342.4691 329.1516 333.4074 437.157    10</code></pre>
+##  min lq mean median uq max neval
+##   87 89   90     90 91  94    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit23$estMat, method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]    [,2]            [,3]    [,4]  
-## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot; 
-## [2,] &quot;0.426&quot; &quot;8.513&quot;         &quot;0.061&quot; &quot;0.15&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]  [,4] 
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <pre class="r"><code>fit232 = ngc(X, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, groupByTime = TRUE)
 checkEstimation(phi_true, fit232$estMat, method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]    [,2]            [,3]    [,4]  
-## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot; 
-## [2,] &quot;0.426&quot; &quot;8.513&quot;         &quot;0.061&quot; &quot;0.15&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]  [,4] 
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <p>Apply thresholded Lasso approach without specifying group with the group data. The time and metrics are listed below:</p>
 <pre class="r"><code>fit23 = ngc(X_grp, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE)
 microbenchmark(ngc(X_grp, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE), 
@@ -586,17 +610,17 @@ microbenchmark(ngc(X_grp, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, 
 <pre><code>## Unit: milliseconds
 ##                                                                                              expr
 ##  ngc(X_grp, d = d, method = &quot;threshold&quot;, typeIerr = 0.02, group = group,      groupByTime = TRUE)
-##       min       lq     mean   median       uq     max neval
-##  178.3381 181.9518 187.2282 184.4788 189.1384 203.922    10</code></pre>
+##  min  lq mean median  uq max neval
+##  805 809  816    813 822 834    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true_grp, fit23$estMat, method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]                   [,2]                   [,3]    [,4] 
-## [1,] &quot;REE&quot;                  &quot;Fobinius Norm&quot;        &quot;FPR&quot;   &quot;TPR&quot;
-## [2,] &quot;3.85454297856408e+21&quot; &quot;3.85454297856408e+22&quot; &quot;0.053&quot; &quot;1&quot;</code></pre>
+<pre><code>##      [,1]   [,2]            [,3]    [,4]   
+## [1,] &quot;REE&quot;  &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;  
+## [2,] &quot;1.19&quot; &quot;14.285&quot;        &quot;0.054&quot; &quot;0.021&quot;</code></pre>
 <pre class="r"><code>fit232 = ngc(X_grp, d = d, method = &#39;threshold&#39;, typeIerr = 0.02, groupByTime = TRUE)
 checkEstimation(phi_true, fit232$estMat, method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]                   [,2]                   [,3]    [,4]  
-## [1,] &quot;REE&quot;                  &quot;Fobinius Norm&quot;        &quot;FPR&quot;   &quot;TPR&quot; 
-## [2,] &quot;1.92727148928204e+21&quot; &quot;3.85454297856408e+22&quot; &quot;0.094&quot; &quot;0.15&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]    [,4]   
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;  
+## [2,] &quot;1.086&quot; &quot;14.112&quot;        &quot;0.048&quot; &quot;0.077&quot;</code></pre>
 </div>
 <div id="apply-thresholded-lasso-with-unkown-order" class="section level4">
 <h4>Apply thresholded lasso with unkown order</h4>
@@ -605,30 +629,30 @@ checkEstimation(phi_true, fit232$estMat, method_name = &quot;Thresholded Lasso&q
 microbenchmark(ngc(X, method = &#39;threshold&#39;, typeIerr = 0.02),
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                           expr      min       lq     mean
-##  ngc(X, method = &quot;threshold&quot;, typeIerr = 0.02) 91.65885 98.36581 98.96314
-##    median      uq      max neval
-##  100.1814 102.007 102.3109    10</code></pre>
+##                                           expr min  lq mean median  uq max
+##  ngc(X, method = &quot;threshold&quot;, typeIerr = 0.02)  83 112  142    123 179 253
+##  neval
+##     10</code></pre>
 <pre class="r"><code>fit24$tsOrder</code></pre>
 <pre><code>## [1] 0</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit24$estMat[,,1:d], method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
 <pre><code>##      [,1]    [,2]            [,3]  [,4] 
 ## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
-## [2,] &quot;0.224&quot; &quot;4.472&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <pre class="r"><code>fit242 &lt;-ngc(X, method = &#39;threshold&#39;, typeIerr = 0.02, group = group)
 fit242$tsOrder</code></pre>
-<pre><code>## [1] 7</code></pre>
+<pre><code>## [1] 0</code></pre>
 <pre class="r"><code>microbenchmark(ngc(X, method = &#39;threshold&#39;, typeIerr = 0.02, group = group), 
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                                          expr      min       lq
-##  ngc(X, method = &quot;threshold&quot;, typeIerr = 0.02, group = group) 616.4274 684.3878
-##      mean   median       uq      max neval
-##  698.1045 702.2174 719.5245 755.4696    10</code></pre>
+##                                                          expr min  lq mean
+##  ngc(X, method = &quot;threshold&quot;, typeIerr = 0.02, group = group) 235 237  245
+##  median  uq max neval
+##     244 247 258    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit242$estMat[,,1:d], method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
 <pre><code>##      [,1]    [,2]            [,3]  [,4] 
 ## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
-## [2,] &quot;0.224&quot; &quot;4.472&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <pre class="r"><code>fit243 &lt;-ngc(X, method = &#39;threshold&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE)
 fit243$tsOrder</code></pre>
 <pre><code>## [1] 0</code></pre>
@@ -637,34 +661,34 @@ fit243$tsOrder</code></pre>
 <pre><code>## Unit: milliseconds
 ##                                                                                   expr
 ##  ngc(X, method = &quot;threshold&quot;, typeIerr = 0.02, group = group,      groupByTime = TRUE)
-##       min       lq     mean   median       uq      max neval
-##  176.7824 181.2001 210.7562 183.6063 254.6399 258.7627    10</code></pre>
+##  min  lq mean median  uq max neval
+##  140 145  167    149 171 269    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit243$estMat[,,1:d], method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
 <pre><code>##      [,1]    [,2]            [,3]  [,4] 
 ## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
-## [2,] &quot;0.224&quot; &quot;4.472&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <pre class="r"><code>fit243 &lt;-ngc(X, method = &#39;threshold&#39;, typeIerr = 0.02, groupByTime = TRUE)
 fit243$tsOrder</code></pre>
-<pre><code>## [1] 5</code></pre>
+<pre><code>## [1] 0</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit243$estMat[,,1:d], method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
 <pre><code>##      [,1]    [,2]            [,3]  [,4] 
 ## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
-## [2,] &quot;0.224&quot; &quot;4.472&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <p>Then, we apply thresholded lasso with grouped data.</p>
 <pre class="r"><code>fit24 &lt;- ngc(X_grp, method = &#39;threshold&#39;, typeIerr = 0.02)
 microbenchmark(ngc(X_grp, method = &#39;threshold&#39;, typeIerr = 0.02),
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                               expr      min       lq     mean
-##  ngc(X_grp, method = &quot;threshold&quot;, typeIerr = 0.02) 90.76193 95.02552 98.39897
-##    median       uq      max neval
-##  97.78076 102.9351 104.9185    10</code></pre>
+##                                               expr min lq mean median uq max
+##  ngc(X_grp, method = &quot;threshold&quot;, typeIerr = 0.02)  85 87   91     91 95  96
+##  neval
+##     10</code></pre>
 <pre class="r"><code>fit24$tsOrder</code></pre>
 <pre><code>## [1] 0</code></pre>
 <pre class="r"><code>checkEstimation(phi_true_grp, fit24$estMat[,,1:d], method_name = &quot;Thresholded Lasso&quot;)$metrics</code></pre>
 <pre><code>##      [,1]    [,2]            [,3]  [,4] 
 ## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
-## [2,] &quot;0.316&quot; &quot;3.162&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
+## [2,] &quot;0.289&quot; &quot;3.464&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 </div>
 </div>
 <div id="truncating-lasso" class="section level3">
@@ -674,79 +698,57 @@ microbenchmark(ngc(X_grp, method = &#39;threshold&#39;, typeIerr = 0.02),
 microbenchmark(ngc(X, d=2, method = &#39;truncate&#39;, typeIerr = 0.02),
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                                 expr      min       lq     mean
-##  ngc(X, d = 2, method = &quot;truncate&quot;, typeIerr = 0.02) 126.4921 129.2726 135.5257
-##    median       uq      max neval
-##  135.8958 141.6287 143.6695    10</code></pre>
+##                                                 expr min  lq mean median  uq
+##  ngc(X, d = 2, method = &quot;truncate&quot;, typeIerr = 0.02) 174 174  179    178 183
+##  max neval
+##  189    10</code></pre>
 <pre class="r"><code>fit3$tsOrder</code></pre>
 <pre><code>## [1] 2</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit3$estMat[,,1:d], method_name = &quot;Truncate Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]    [,2]            [,3]    [,4] 
-## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;
-## [2,] &quot;0.221&quot; &quot;4.424&quot;         &quot;0.017&quot; &quot;0.2&quot;</code></pre>
-<pre class="r"><code># fit32 &lt;-ngc(X, d=2,method = &#39;truncate&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE)
-# fit32$tsOrder
-# microbenchmark(ngc(X, d=2,method = &#39;truncate&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE),
-#                times = 10)
-# 
-# checkEstimation(phi_true, fit32$estMat[,,1:d], method_name = &quot;Truncate Lasso&quot;)$metrics</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]    [,4]   
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;  
+## [2,] &quot;0.276&quot; &quot;3.589&quot;         &quot;0.015&quot; &quot;0.115&quot;</code></pre>
 <p>Then, we apply truncating lasso with grouped data.</p>
 <pre class="r"><code>fit33 &lt;- ngc(X_grp, d=2, method = &#39;truncate&#39;, typeIerr = 0.05)
 microbenchmark(ngc(X_grp, d=2, method = &#39;truncate&#39;, typeIerr = 0.05),
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                                     expr      min       lq
-##  ngc(X_grp, d = 2, method = &quot;truncate&quot;, typeIerr = 0.05) 422.9997 440.3776
-##      mean   median       uq     max neval
-##  458.9794 445.5104 458.2415 582.429    10</code></pre>
+##                                                     expr min  lq mean median
+##  ngc(X_grp, d = 2, method = &quot;truncate&quot;, typeIerr = 0.05) 292 296  351    340
+##   uq max neval
+##  402 451    10</code></pre>
 <pre class="r"><code>checkEstimation(phi_true_grp, fit33$estMat[,,1:d], method_name = &quot;Truncate Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]                   [,2]                   [,3]  [,4] 
-## [1,] &quot;REE&quot;                  &quot;Fobinius Norm&quot;        &quot;FPR&quot; &quot;TPR&quot;
-## [2,] &quot;3.12983730076943e+20&quot; &quot;3.12983730076943e+21&quot; &quot;0&quot;   &quot;0.2&quot;</code></pre>
-<pre class="r"><code># 
-# fit342 &lt;-ngc(X_grp, method = &#39;truncate&#39;, typeIerr = 0.02, group = group)
-# fit342$tsOrder
-# microbenchmark(ngc(X_grp, method = &#39;truncate&#39;, typeIerr = 0.02, group = group), 
-#                times = 10)
-# 
-# checkEstimation(phi_true_grp, fit342$estMat[,,1:d], method_name = &quot;Truncate Lasso&quot;)$metrics
-# 
-# fit343 &lt;-ngc(X_grp, method = &#39;truncate&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE)
-# fit343$tsOrder
-# microbenchmark(ngc(X_grp, method = &#39;truncate&#39;, typeIerr = 0.02, group = group, groupByTime = TRUE), 
-#                times = 10)
-# 
-# checkEstimation(phi_true_grp, fit343$estMat[,,1:d], method_name = &quot;Truncate Lasso&quot;)$metrics</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]    [,4]   
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;  
+## [2,] &quot;0.397&quot; &quot;4.761&quot;         &quot;0.056&quot; &quot;0.208&quot;</code></pre>
 <p>Next, we apply truncating Lasso approach without specifying group with the none group data. The time and metrics are listed below: First, we apply truncating lasso with ungrouped data.</p>
 <pre class="r"><code>fit34 &lt;- ngc(X, method = &#39;truncate&#39;, typeIerr = 0.02)
 microbenchmark(ngc(X, method = &#39;truncate&#39;, typeIerr = 0.02),
                times = 10)</code></pre>
 <pre><code>## Unit: milliseconds
-##                                          expr      min       lq     mean
-##  ngc(X, method = &quot;truncate&quot;, typeIerr = 0.02) 104.0263 109.3349 112.5475
-##    median       uq      max neval
-##  113.0607 116.4707 117.9517    10</code></pre>
+##                                          expr min lq mean median uq max neval
+##  ngc(X, method = &quot;truncate&quot;, typeIerr = 0.02)  48 49   53     52 58  58    10</code></pre>
 <pre class="r"><code>fit34$tsOrder</code></pre>
-<pre><code>## [1] 1</code></pre>
+<pre><code>## [1] 2</code></pre>
 <pre class="r"><code>checkEstimation(phi_true, fit34$estMat[,,dim(fit34$estMat)[3]-seq(d,1,-1)], method_name = &quot;Truncate Lasso&quot;)$metrics</code></pre>
 <pre><code>##      [,1]    [,2]            [,3]  [,4] 
 ## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
-## [2,] &quot;0.224&quot; &quot;4.472&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
+## [2,] &quot;0.277&quot; &quot;3.606&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
 <p>Then, we apply truncating lasso with grouped data.</p>
 <pre class="r"><code>fit34 &lt;- ngc(X_grp, method = &#39;truncate&#39;, typeIerr = 0.05)
 microbenchmark(ngc(X_grp, method = &#39;truncate&#39;, typeIerr = 0.05),
                times = 10)</code></pre>
-<pre><code>## Unit: milliseconds
-##                                              expr     min       lq     mean
-##  ngc(X_grp, method = &quot;truncate&quot;, typeIerr = 0.05) 96.5738 98.54083 100.6039
-##    median       uq      max neval
-##  100.7649 102.9168 104.4614    10</code></pre>
+<pre><code>## Unit: seconds
+##                                              expr min  lq mean median uq max
+##  ngc(X_grp, method = &quot;truncate&quot;, typeIerr = 0.05) 2.5 2.6  2.8    2.8  3   3
+##  neval
+##     10</code></pre>
 <pre class="r"><code>fit34$tsOrder</code></pre>
-<pre><code>## [1] 1</code></pre>
+<pre><code>## [1] 18</code></pre>
 <pre class="r"><code>checkEstimation(phi_true_grp, fit34$estMat[,,1:d], method_name = &quot;Truncate Lasso&quot;)$metrics</code></pre>
-<pre><code>##      [,1]    [,2]            [,3]  [,4] 
-## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot; &quot;TPR&quot;
-## [2,] &quot;0.316&quot; &quot;3.162&quot;         &quot;0&quot;   &quot;0&quot;</code></pre>
+<pre><code>##      [,1]    [,2]            [,3]    [,4]   
+## [1,] &quot;REE&quot;   &quot;Fobinius Norm&quot; &quot;FPR&quot;   &quot;TPR&quot;  
+## [2,] &quot;0.293&quot; &quot;3.518&quot;         &quot;0.028&quot; &quot;0.062&quot;</code></pre>
 </div>
 </div>
 
