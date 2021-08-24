@@ -37,7 +37,7 @@ library(igraph)
 ```
 # Introduction
 
-`ngc` provides several methods to estimate causal relationships from time-course data and temporal panel data. It mainly implements truncating lasso, adaptively thresholding method, and group lasso regression regularization framework. The truncating lasso penalty can correctly determine the order of the underlying time series, and improves the performance of the lasso-type estimators. Details of the method are available in XXX. 
+`ngc` provides several methods to estimate causal relationships from time-course data and temporal panel data. It mainly implements truncating lasso, threshold lasso method, and group lasso regression regularization framework. Details of these three methods are available in the references. 
 
 In this vignette, we demonstrate the `ngc` package using a simulated dataset. `ngc` can handle two different types of the data, either data with $T$ time points and $p$ concurent time series or data with $n$ observations, $T$ time points and $p$ concurent time series. Also, the dataset is the only object that is required for using `ngc`. This package requires the packages attached before using it:
 
@@ -91,12 +91,18 @@ A summary of the object `fit1` is displayed if we just enter the object name or 
 names(fit1)
 ```
 
-`estMat` gives the estimation of the Granger Causality; `lambda` gives the tuning parameter $\lambda$ for each concurrent time series we considered in the first step; `sigma` returns the threshold parameter $\sigma$ we use for the second step of the method; `intercepts` returns the intercept in the estimation procedure; `tsOrder` returns the lags considered in this model; `dag` and `ring` gives the information for estimated the network, and we will use this information for visualization later.
+`estMat` gives the estimation of the Granger Causality; `lambda` gives the tuning parameter $\lambda$ for each concurrent time series we considered in the first step; `sigma` returns the threshold parameter $\sigma$ we use for the second step of the method; `intercepts` returns the intercept in the estimation procedure; `tsOrder` returns the order of lags selected in the model; `dag` and `ring` gives the information for estimated the network, and we will use this information for visualization later.
 ```{r, eval=TRUE, cache=TRUE}
 fit1$estMat
 fit1$lambda
 fit1$sigma
 fit1$intercepts
+```
+Note that user can also specify the value of type I error using the argument `typeIerr`. If type I error is not provided, the tuning parameter is selected by cross-validation, otherwise error-based lasso is fitted.
+```{r, eval=TRUE, cache=TRUE, warning = FALSE}
+fit1_typeI = ngc(X, d=2, typeIerr = 0.02)
+fit1_typeI$estMat
+fit1_typeI$lambda
 ```
 
 `plot.ngc` provides several options for visualizing the results from `ngc`. To visualize the model, we can simply call the function `plot` or `plot.ngc`. `ngc.type` can be used to select the type of graph to show the Granger causality. The default type is `granger`, which plots the DAG of network. Users can also show the ring graph by specifying `ngc.type = "granger"`.
@@ -227,3 +233,18 @@ dim(fit4_pred)
 head(fit4_pred)
 ```
 
+## Real Data Example
+In this section, we will demonstrate our method with real data application. The data is a subset of genome-wide expression of cell cycle genes in human cancer
+cell lines (HeLa) downloaded from 
+
+
+
+
+
+**References**
+
+Shojaie A. and Michailidis G. (2010) Discovering Graphical Granger Causality Using a Truncating Lasso Penalty, Bioinformatics, 26(18): i517-i523
+
+Shojaie A., Basu S. and Michailidis G. (2012) Adaptive Thresholding for Reconstructing Regulatory Networks from Time Course Gene Expression Data, Statistics In Biosciences 4(1): 66-83
+
+Basu S., Shojaie A. and Michailidis G. (2015) Network Granger Causality with Inherent Grouping Structure, Journal of Machine Learning Research (JMLR)
