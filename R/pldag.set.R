@@ -12,14 +12,6 @@
 #' @param d number of time lags to consider
 #' @return a list including fitted coefficients and the final lambda value
 
-# X1 = XX
-# X2 = YY
-# group = group
-# sigLevel=typeIerr
-# useWghts=TRUE
-# wghts=W
-# wantScale=TRUE
-
 pldag.set <-
 function(
 	X1,				##predictor set, nxp1 matrix
@@ -61,11 +53,11 @@ function(
 		}
 	  if (is.null(group))
 	  {
-	    wghts <- matrix(1,p2,p1)
+	    wghts <- Matrix(1,p2,p1)
 	  }
 	  else
 	  {
-	    wghts <- matrix(rep(as.vector(sqrt(table(group))), p2), nrow=p2)
+	    wghts <- Matrix(rep(as.vector(sqrt(table(group))), p2), nrow=p2)
 	  }
 	}
 
@@ -87,11 +79,11 @@ function(
 		}
 	}
 
-	AA <- matrix(0, p2, p1)
+	AA <- Matrix(0, p2, p1)
 
 	if ( is.null(excld) )
   {
-		excld <- matrix(FALSE,p2,p1)
+		excld <- Matrix(FALSE,p2,p1)
 	}
 
 	if ( (dim(excld)[1]!= dim(AA)[1]) || (dim(excld)[2]!= dim(AA)[2]) )
@@ -134,7 +126,7 @@ function(
 		    }
 		    else
 		    {
-		      fit1 <- gglasso(X1, y, group = sort(group), loss="ls", 
+		      fit1 <- gglasso(as.matrix(X1), y, group = sort(group), loss="ls", 
 		                      lambda = lambda)
 		    }
 		    betas <- coef(fit1)
@@ -162,7 +154,7 @@ function(
 		    }
 		    else
 		    {
-		      fit1 <- cv.gglasso(X1, y, group = sort(group), pred.loss = "L1", pf  = ww, nfolds = 5)
+		      fit1 <- cv.gglasso(as.matrix(X1), y, group = sort(group), pred.loss = "L1", pf  = ww, nfolds = 5)
 		    }
 		    lambdas[i] <- fit1$lambda.1se
 		    betas <- coef(fit1, s="lambda.1se")

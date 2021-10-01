@@ -47,7 +47,7 @@ X <- simulate_data(n, edge, T = T, error_sd = error_sd)
 X_grp <- simulate_data(n, edge_grp, T = T, error_sd = error_sd)
 
 Rprof("reg.out")  
-fit1 = ngc(X, d = d, method = 'regular', typeIerr = 0.05, group = group, groupByTime = TRUE, weights = weights)
+fit1 = ngc(X, d = d, method = 'regular', typeIerr = 0.05, group = group, groupByTime = TRUE)
 plot.ngc(fit1, ngc.type = "dag")
 fit1_pred = predict(fit1, 2)
 Rprof(NULL)

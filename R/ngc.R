@@ -29,13 +29,11 @@ ngc <-
     covNames = NULL #covariate names
   ){
     ####### START OF FN #######
-    if (method != 'regular' & method != 'truncate' & method != 'threshold')
-    {
+    if (method != 'regular' & method != 'truncate' & method != 'threshold'){
       stop('Invalid estimation method specified')
     }
 
-    if (!is.array(X) | length(dim(X)) <2 | length(dim(X)) > 3)
-    {
+    if (!is.array(X) | length(dim(X)) <2 | length(dim(X)) > 3){
       stop('Invalid X')
     }
 
@@ -45,33 +43,27 @@ ngc <-
       n <- 1
       p <- dim(X)[1]
       len <- dim(X)[2]
-    }
-    else
-    { 
+    }else { 
       # size of longitudinal data
       n <- dim(X)[1]
       p <- dim(X)[2]
       len <- dim(X)[3]
     }
 
-    if (is.null(d))
-    {
+    if (is.null(d)){
       # use the maximum possible lags
       d <- len-1
     }
 
-    if (d >= len)
-    {
+    if (d >= len){
       stop('Number of time lags to consider cannot exceed number of time points')
     }
 
     #Set up replicates for the time series case
     #Put X into array format
     #The transformed matrix has (len-d) replicates over d+1 time points
-    if (n == 1)
-    {
-      if (d >= len-1)
-      {
+    if (n == 1){
+      if (d >= len-1){
         stop('Number of time lags to consider must be restricted in order to fit time series')
       }
       cat('Warning: stationarity assumption is required for time series data')
@@ -79,16 +71,14 @@ ngc <-
       n <- len-d
       len <- d+1
       X <- array(0, c(n,p,len))
-      for (i in 1:n)
-      {
+      for (i in 1:n){
         X[i,,] <- xMat[,i:(d+i)] #%% include current time point
       }
     }
     
     if (!is.null(covNames))
     {
-      if (length(covNames) != p)
-      {
+      if (length(covNames) != p){
         stop("Number of covariate names must match number of covariates")
       }
     }
@@ -108,12 +98,9 @@ ngc <-
         stop("Groups must be specified with consecutive integers")
       }
       # apply groups across time points 
-      if (groupByTime)
-      {
+      if (groupByTime){
         group <- rep(group, d)
-      }
-      else
-      {
+      }else{
         ngrp = length(unique(group))
         group <- group + rep(seq(0, (d-1)*ngrp, by = ngrp), each = p)
       }
@@ -128,16 +115,11 @@ ngc <-
     {
       fit <- grangerLasso(X, d = d, group = group, typeIerr = typeIerr,
                           weights = weights)
-    }
-
-    else if (method == 'truncate')
-    {
+    }else if (method == 'truncate'){
       fit <- grangerTlasso(X, d = d, group = group, typeIerr = typeIerr,
                            typeIIerr = typeIIerr, weights = weights)
-    }
-
-    else #threshold
-    {
+    }else #threshold
+      {
       fit <- grangerThrLasso(X, d = d, group = group, typeIerr = typeIerr,
                              typeIIerr = typeIIerr, weights = weights,
                              thresholdConstant = thresholdConstant,
@@ -166,9 +148,6 @@ ngc <-
       ringMat <- Matrix(0, nrow=p, ncol=p)
     }
     
-    # dagMat <- Matrix(0, nrow=p*(d+1), ncol=p*(d+1), sparse = TRUE)
-    # ringMat <- Matrix(0, nrow=p, ncol=p)
-    
     if (edgeCount > 0)
     {
       for (i in 1:edgeCount)
@@ -180,8 +159,8 @@ ngc <-
         pEnd <- edge[1]
         lag <- edge[3]
         
-        dagMat[((edge2[3]-1)*p + pStart),(fit$tsOrder*p + pEnd)] <- fit$estMat[pEnd, pStart, lag]
-        ringMat[pStart, pEnd] <- ringMat[pStart, pEnd] + fit$estMat[pEnd, pStart, lag]^2
+        dagMat[((edge2[3]-1)*p + pStart),(fit$tsOrder*p + pEnd)] <- Matrix(fit$estMat[pEnd, pStart, lag])
+        ringMat[pStart, pEnd] <- ringMat[pStart, pEnd] + (Matrix(fit$estMat[pEnd, pStart, lag]))^2
       } 
     }
     

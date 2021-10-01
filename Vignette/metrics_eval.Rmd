@@ -1,0 +1,284 @@
+---
+title: "Metrics Evalulation"
+author: "KZ"
+date: "8/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+options(scipen = 1, digits = 2) #set to two decimal 
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, warning = FALSE)
+```
+```{r begin, echo=FALSE}
+setwd("/Users/xinyi/Documents/GitHub/ngc/R")
+```
+
+```{r cars}
+library('microbenchmark')
+source("defn.R")
+source("simulate.r")
+source("array2mat.r")
+source("pldag.set.r")
+source("ngc.r")
+source("grangerLasso.r")
+source("grangerTLasso_v3.r")
+source("grangerThrLasso.r")
+source("metrics.R")
+library(glmnet)
+library(gglasso)
+library(igraph)
+library(Matrix)
+library("xtable")
+```
+
+## Data Generation
+
+We first create the skeleton of a random sparse $d \times p \times p$ network, with group and without group. The variable 'edge' contains the network without grouping effect, while 'edge_grp' contains the network with group effects, that is first 8 concurrent time series is one group and the rest of the time series are the other group. The time to generate the edges without group is listed below:
+
+```{r pressure, echo=TRUE, cache=TRUE, eval=TRUE}
+## Creates the skeleton of a random sparse d x p x p network 
+## with 0.1 sparsity
+set.seed(123)
+d <- 2
+p <- 16
+n <- 20
+edge = defn_net(d = d, p = p, n = n, sparsity = 0.1)
+
+set.seed(123)
+grp = c(rep(1,p/2),rep(2,p/2))
+edge_grp = defn_net(d = d, p = p, n = n, grp = grp, sparsity = 0.1)
+microbenchmark(defn_net(d = d, p = p, n = n), times=10)
+phi_true = array(c((edge[2,,]),(edge[1,,])), dim = c(p,p,d))
+phi_true_grp = array(c((edge_grp[2,,]),(edge_grp[1,,])), dim = c(p,p,d))
+```
+
+Then, we simulate $n = 20$ iid samples from the Granger causality network with $p = 16$ variables observed over $T = 50$ time points and the standard error equal to $0.2$. $X$ is a $n \times p \times T$ array. The time to generate the data without group is listed below:
+
+```{r, echo=TRUE, eval=TRUE, cache=TRUE, tidy=TRUE}
+###############
+## Simulate n iid samples from the granger causality network 
+## with p variables observed over T time points
+## X is a n x p x T array
+set.seed(123)
+T <- 50
+error_sd <- 0.1
+X <- simulate_data(n, edge, T = T, error_sd = error_sd)
+X_grp <- simulate_data(n, edge_grp, T = T, error_sd = error_sd)
+microbenchmark(simulate_data(n, edge, T = T, error_sd = error_sd),
+               times=10)
+```
+
+## Methods
+We will evaluate three methods with and without grouping effects.
+
+### Regular Lasso
+Apply standard lasso approach without specifying group with the data that does not have grouping effects. The time and metrics are listed below:
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit1 = ngc(X, d = d, method = 'regular', typeIerr = 0.02)
+microbenchmark(ngc(X, d = d, method = 'regular', typeIerr = 0.02), 
+               times = 10)
+```
+```{r, eval=TRUE, echo = TRUE}
+checkEstimation(phi_true, fit1$estMat, method_name = "Lasso")$metrics
+```
+Next, we check the results with lambda selected by cross validation.
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit1 = ngc(X, d = d, method = 'regular')
+checkEstimation(phi_true, fit1$estMat, method_name = "Lasso")$metrics
+```
+#### Regular lasso with grouping
+Apply standard lasso approach and specify the group with the data that actually does not have grouping effects. The time and metrics are listed below:
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+group = c(rep(1,p/2),rep(2,p/2))
+fit12 = ngc(X, d = d, method = 'regular', typeIerr = 0.02, group = group)
+microbenchmark(ngc(X, d = d, method = 'regular', typeIerr = 0.02, group = group), 
+               times = 10)
+
+checkEstimation(phi_true, fit12$estMat, method_name = "Lasso")$metrics
+```
+
+Apply standard Lasso approach and specify group with data that has grouping effects. The time and metrics are listed below:
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit12 = ngc(X_grp, d = d, method = 'regular', typeIerr = 0.02, group = group)
+microbenchmark(ngc(X_grp, d = d, method = 'regular', typeIerr = 0.02, group = group), 
+               times = 10)
+
+checkEstimation(phi_true_grp, fit12$estMat, method_name = "Lasso")$metrics
+```
+
+#### Regular lasso with grouping by time
+Apply standard lasso approach, specify the group, and allow to group by time with data that does not have grouping effects. The time and metrics are listed below:
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit13 = ngc(X, d = d, method = 'regular', typeIerr = 0.02, group = group, groupByTime = TRUE)
+microbenchmark(ngc(X, d = d, method = 'regular', typeIerr = 0.02, group = group, groupByTime = TRUE), 
+               times = 10)
+
+checkEstimation(phi_true, fit13$estMat, method_name = "Lasso")$metrics
+
+fit132 = ngc(X, d = d, method = 'regular', typeIerr = 0.02, groupByTime = TRUE)
+checkEstimation(phi_true, fit132$estMat, method_name = "Lasso")$metrics
+
+```
+Apply standard lasso approach and specify the group with data that has grouping effects. The time and metrics are listed below:
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit13 = ngc(X_grp, d = d, method = 'regular', typeIerr = 0.02, group = group, groupByTime = TRUE)
+microbenchmark(ngc(X_grp, d = d, method = 'regular', typeIerr = 0.02, group = group, groupByTime = TRUE), 
+               times = 10)
+
+checkEstimation(phi_true_grp, fit13$estMat, method_name = "Lasso")$metrics
+
+fit132 = ngc(X_grp, d = d, method = 'regular', typeIerr = 0.02, groupByTime = TRUE)
+checkEstimation(phi_true, fit132$estMat, method_name = "Lasso")$metrics
+
+```
+
+### Thresholded Lasso
+Apply thresholded lasso approach without specifying group with the data that does not have grouping effects. The time and metrics are listed below:
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit2 <- ngc(X, d = d, method = 'threshold', typeIerr = 0.02)
+microbenchmark(ngc(X, d = d, method = 'threshold', typeIerr = 0.02),
+               times = 10)
+
+checkEstimation(phi_true, fit2$estMat, method_name = "Thresholded Lasso")$metrics
+```
+
+#### Thresholded Lasso with grouping
+Apply thresholded Lasso approach, and specify the group with the data that does not have grouping effects. The time and metrics are listed below:
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit22 = ngc(X, d = d, method = 'threshold', typeIerr = 0.02, group = group)
+microbenchmark(ngc(X, d = d, method = 'threshold', typeIerr = 0.02, group = group), 
+               times = 10)
+
+checkEstimation(phi_true, fit22$estMat, method_name = "Thresholded Lasso")$metrics
+```
+Apply thresholded lasso approach and specify the group with data that has grouping effects. The time and metrics are listed below:
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit22 = ngc(X_grp, d = d, method = 'threshold', typeIerr = 0.02, group = group)
+microbenchmark(ngc(X_grp, d = d, method = 'threshold', typeIerr = 0.02, group = group), 
+               times = 10)
+
+checkEstimation(phi_true_grp, fit22$estMat, method_name = "Thresholded Lasso")$metrics
+```
+
+#### Thresholded Lasso with grouping by time
+Apply thresholded lasso approach, specify group, and allow group by time with the data that does not have grouping effects. The time and metrics are listed below:
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit23 = ngc(X, d = d, method = 'threshold', typeIerr = 0.02, group = group, groupByTime = TRUE)
+microbenchmark(ngc(X, d = d, method = 'threshold', typeIerr = 0.02, group = group, groupByTime = TRUE), 
+               times = 10)
+
+checkEstimation(phi_true, fit23$estMat, method_name = "Thresholded Lasso")$metrics
+
+fit232 = ngc(X, d = d, method = 'threshold', typeIerr = 0.02, groupByTime = TRUE)
+checkEstimation(phi_true, fit232$estMat, method_name = "Thresholded Lasso")$metrics
+
+```
+Apply thresholded lasso approach, specify the group and allow group by time with the data that has grouping effects. The time and metrics are listed below:
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit23 = ngc(X_grp, d = d, method = 'threshold', typeIerr = 0.02, group = group, groupByTime = TRUE)
+microbenchmark(ngc(X_grp, d = d, method = 'threshold', typeIerr = 0.02, group = group, groupByTime = TRUE), 
+               times = 10)
+
+checkEstimation(phi_true_grp, fit23$estMat, method_name = "Thresholded Lasso")$metrics
+
+fit232 = ngc(X_grp, d = d, method = 'threshold', typeIerr = 0.02, groupByTime = TRUE)
+checkEstimation(phi_true, fit232$estMat, method_name = "Thresholded Lasso")$metrics
+```
+
+#### Apply thresholded lasso with unkown order
+First, we apply thresholded lasso with data that does not have grouping effects. In this case, we don't assume the order of time series is known.
+```{r, echo=TRUE, eval=TRUE, cache=TRUE}
+fit24 <- ngc(X, method = 'threshold', typeIerr = 0.02)
+microbenchmark(ngc(X, method = 'threshold', typeIerr = 0.02),
+               times = 10)
+fit24$tsOrder
+checkEstimation(phi_true, fit24$estMat[,,1:d], method_name = "Thresholded Lasso")$metrics
+
+fit242 <-ngc(X, method = 'threshold', typeIerr = 0.02, group = group)
+fit242$tsOrder
+microbenchmark(ngc(X, method = 'threshold', typeIerr = 0.02, group = group), 
+               times = 10)
+
+checkEstimation(phi_true, fit242$estMat[,,1:d], method_name = "Thresholded Lasso")$metrics
+
+fit243 <-ngc(X, method = 'threshold', typeIerr = 0.02, group = group, groupByTime = TRUE)
+fit243$tsOrder
+microbenchmark(ngc(X, method = 'threshold', typeIerr = 0.02, group = group, groupByTime = TRUE), 
+               times = 10)
+
+checkEstimation(phi_true, fit243$estMat[,,1:d], method_name = "Thresholded Lasso")$metrics
+
+fit243 <-ngc(X, method = 'threshold', typeIerr = 0.02, groupByTime = TRUE)
+fit243$tsOrder
+checkEstimation(phi_true, fit243$estMat[,,1:d], method_name = "Thresholded Lasso")$metrics
+```
+Then, we apply thresholded lasso with data that does have grouping effects. Similarly, we let the algorithm to choose the order of time series automatically.
+```{r thres, echo=TRUE, eval=TRUE, cache=TRUE}
+fit24 <- ngc(X_grp, method = 'threshold', typeIerr = 0.02)
+microbenchmark(ngc(X_grp, method = 'threshold', typeIerr = 0.02),
+               times = 10)
+fit24$tsOrder
+checkEstimation(phi_true_grp, fit24$estMat[,,1:d], method_name = "Thresholded Lasso")$metrics
+```
+
+
+### Truncating Lasso
+Apply truncated lasso approach with/without specifying group with data. The time and metrics are listed below:
+First, we apply truncated lasso with data that has no grouping effects.
+```{r truncated, echo=TRUE, cache=TRUE}
+fit3 <- ngc(X, d=2, method = 'truncate', typeIerr = 0.02)
+microbenchmark(ngc(X, d=2, method = 'truncate', typeIerr = 0.02),
+               times = 10)
+fit3$tsOrder
+checkEstimation(phi_true, fit3$estMat[,,1:d], method_name = "Truncate Lasso")$metrics
+```
+Then, we apply truncated lasso with data that has group effects.
+```{r, echo=TRUE, cache=TRUE}
+fit33 <- ngc(X_grp, d=2, method = 'truncate', typeIerr = 0.05)
+microbenchmark(ngc(X_grp, d=2, method = 'truncate', typeIerr = 0.05),
+               times = 10)
+checkEstimation(phi_true_grp, fit33$estMat[,,1:d], method_name = "Truncate Lasso")$metrics
+
+```
+
+Next, we apply truncated lasso approach without specifying group with the data that does not has group effects. The time and metrics are listed below:
+First, we apply truncated lasso with specifying grouping effect. In this cases, we assume the order of the time series is unknown.
+```{r truncated_auto, echo=TRUE, cache=TRUE}
+fit34 <- ngc(X, method = 'truncate', typeIerr = 0.02)
+microbenchmark(ngc(X, method = 'truncate', typeIerr = 0.02),
+               times = 10)
+fit34$tsOrder
+checkEstimation(phi_true, fit34$estMat[,,dim(fit34$estMat)[3]-seq(d,1,-1)], method_name = "Truncate Lasso")$metrics
+
+```
+Then, we apply truncated lasso with data that has grouping effects.
+```{r, echo=TRUE, cache=TRUE}
+fit34 <- ngc(X_grp, method = 'truncate', typeIerr = 0.05)
+microbenchmark(ngc(X_grp, method = 'truncate', typeIerr = 0.05),
+               times = 10)
+fit34$tsOrder
+checkEstimation(phi_true_grp, fit34$estMat[,,1:d], method_name = "Truncate Lasso")$metrics
+```
+
+It takes some time (about 15 minutes) to run simulations with 10 replicates, so here we only include the comparison results among these three methods, and the code to generate these results are in [here](khzhang/ngc/Vignette/metrics_supp.R). Here the tuning parameter $\lambda$ is selected by type I error.
+
+We first compare the performance of three main methods to the data without group. The results are listed below:
+
+| Methods           | REE   | SD(REE) | Frobenius Norm | SD(Frobenius Norm)  | FPR   | TPR   | Run time (second) |
+|-------------------|-------|---------|----------------|---------------------|-------|-------|-------------------|
+| Lasso             | 0.307 | 0       | 3.255          | 0.001               | 0.002 | 0     | 0.157             |
+| Thresholded Lasso | 0.307 | 0       | 3.254          | 0                   | 0     | 0     | 0.596             |
+| Truncated Lasso   | 0.302 | 0.001   | 3.199          | 0.016               | 0.011 | 0.202 | 5.444             |
+
+From the table, truncated lasso approach has better performance than other methods. If we use the dataset with group effect, we can see that truncated lasso approach still works better. The results are listed below:
+
+| Methods           | REE   | SD(REE) | Frobenius Norm | SD(Frobenius Norm)  | FPR   | TPR   | Run time (second) |
+|-------------------|-------|---------|----------------|---------------------|-------|-------|-------------------|
+| Lasso             | 0.408 | 0.002   | 2.448          | 0.01                | 0.004 | 0     | 0.147             |
+| Thresholded Lasso | 0.408 | 0       | 2.449          | 0                   | 0     | 0     | 0.593             |
+| Truncated Lasso   | 0.405 | 0.001   | 2.43           | 0.008               | 0.004 | 0.208 | 5.788             |
+
+
+
+
+

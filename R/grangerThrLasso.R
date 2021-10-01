@@ -50,8 +50,7 @@ grangerThrLasso <-
       foldid <- rep(1:nfolds, floor(n/nfolds))
       #reshuffle
       foldid <- sample(c(foldid, sample(1:nfolds, n-length(foldid))))
-      for (c2 in thresholdValues)
-      {
+      for (c2 in thresholdValues){
         #threshold coefficients
         thresholdEst <- thresholdGgcFit(grangerLassoFit, edgeThreshold, c2)
         estMat <- thresholdEst$estMat
@@ -59,8 +58,7 @@ grangerThrLasso <-
         #iterate over folds and perform CV
         #fit linear regression on nonzero coefficients and validate on held-out data
         #MSE for the fit on the held-out fold
-        for (i in 1:nfolds)
-        {
+        for (i in 1:nfolds){
           mseSum <- mseSum + fitLm(X, estMat, d, p, tp, foldid != i)$mse
         }
         #compare mean MSE over each held-out fold with the current minimum
@@ -117,37 +115,32 @@ grangerThrLasso <-
 
   #fits a linear regression on nonzero coefficients
   #if cvIx is not null, use to construct train and test set
-  fitLm <- function(X, estMat, d, p, tp, cvIx = NULL)
-  {
+  fitLm <- function(X, estMat, d, p, tp, cvIx = NULL){
     # create n x (p*d) matrix of predictors
     predictorMatrix <- array2mat(X[,,(tp-d):(tp-1)])
     mse <- rep(NA, p)
     intercepts <- rep(0, p)
-    for (i in 1:p)
-    {
+    for (i in 1:p){
       #get response for ith covariate
       response <- X[,i,tp]
       #set nonzero predictors for ith response variable
       nonZeroIx <- which(estMat[i,,]!=0)
-      if (length(nonZeroIx)>0)
-      {
+      if (length(nonZeroIx)>0){
         predictors <- predictorMatrix[,nonZeroIx, drop = FALSE]
         #make sure predictors is in matrix format for compatibility
-        if (is.null(cvIx))
-        {
-          lmfit <- lm(response~predictors)
+        if (is.null(cvIx)){
+          lmfit <- lm(response~as.matrix(predictors))
           coefs <- coef(lmfit)
           intercepts <- coefs[1]
           coefs <- coefs[-1]
           coefs[is.na(coefs)] <- 0
-        }
-        else #split into train and test set
+        }else #split into train and test set
         {
           trainPredictors <- predictors[cvIx,, drop=FALSE]
           testPredictors <- predictors[!cvIx,, drop=FALSE]
           trainResponse <- response[cvIx]
           testResponse <- response[!cvIx]
-          lmfit <- lm(trainResponse~trainPredictors)
+          lmfit <- lm(trainResponse~as.matrix(trainPredictors))
           coefs <- coef(lmfit)[-1]
           coefs[is.na(coefs)] <- 0
           # compute mean squared difference between response values and fitted values in the test data set

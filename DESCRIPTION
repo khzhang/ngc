@@ -5,7 +5,7 @@ Version: 0.1.0
 Author: Nick Etzel, Ali Shojaie
 Maintainer: Nick Etzel <njetzel@uw.edu>
 Depends: glmnet, gglasso, igraph, Matrix
-Description: This package implements methods for estimating graphical Granger causality. It implements the truncating lasso and adaptively thresholded lasso methods for longitudinal and time series data. These methods are described in Shojaie and Michailidis 2010 and Shojaie et al 2011.
+Description: This package implements methods for estimating graphical Granger causality. It implements the truncating lasso and adaptively thresholded lasso methods for longitudinal and time series data. These methods are described in Shojaie and Michailidis 2010, Shojaie and Michailidis 2011, and Shojaie and Michailidis 2015.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

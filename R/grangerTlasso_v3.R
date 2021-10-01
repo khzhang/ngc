@@ -34,7 +34,7 @@ grangerTlasso <-
     
     useAlasso <- !is.null(weights)
     
-    Onep <- matrix(1,p,p)
+    Onep <- Matrix(1,p,p)
     
     d_isnull <- TRUE
     if (d < tp-1) {
@@ -51,7 +51,7 @@ grangerTlasso <-
       X[,,i] <- scale( X[,,i] )*sqrt(n/(n-1))
     }
     
-    Y <- X[,,tp]		#for compatiblity with previous codes
+    Y <- Matrix(X[,,tp])		#for compatiblity with previous codes
     YY <- Y
     
     diff <- tol + 1
@@ -74,7 +74,7 @@ grangerTlasso <-
       
       while (jj <= d){
         # print(d)
-        XX <- X[,,(tp-jj)]
+        XX <- Matrix(X[,,(tp-jj)])
         
         ##Find the residual as Y # ?(similar to Gauss-Sidel)
         #? Error in array2mat(X[, , -c(tp - jj, tp)]) %*% theta[i, ] : 
@@ -109,7 +109,7 @@ grangerTlasso <-
                                sigLevel=typeIerr, useWghts=FALSE,
                                wantScale=TRUE, useTLASSO=TRUE, d=d)
             
-            newEst[,,(tp-jj)] <- tempp$AA
+            newEst[,,(tp-jj)] <- as.matrix(tempp$AA)
           }else{
             
             W <- (abs(weights[,,(tp-jj)]) + eps*Onep)^(-Alasso.power)
@@ -120,7 +120,7 @@ grangerTlasso <-
                               sigLevel=typeIerr, useWghts=TRUE,
                               wghts=W, wantScale=TRUE, useTLASSO=TRUE, d=d)
             
-            newEst[,,(tp-jj)] <- tempp$AA
+            newEst[,,(tp-jj)] <- as.matrix(tempp$AA)
           }#endif(!useAlasso)
         }#endif(CONTINUE)
         jj <- jj + 1

@@ -1,7 +1,4 @@
 
-# phi_est = fit1$estMat
-# phi_true = array(c(edge[1,,],edge[2,,]), dim = c(10,10,2))
-
 checkEstimation = function(phi_true, phi_est, method_name = "Lasso" ){
   ## True edges
   N = length(phi_true) 
@@ -11,7 +8,7 @@ checkEstimation = function(phi_true, phi_est, method_name = "Lasso" ){
   est_error =  matrix(0, 3, 7)
   est_error[3,1] = method_name
   est_error[1,2] = "REE"
-  est_error[1,3] = "Fobinius Norm" 
+  est_error[1,3] = "Frobenius Norm" 
   est_error[1,4] = "TZ"
   est_error[2,4] = count_zero
   est_error[2,1] = "TRUTH"
@@ -52,7 +49,7 @@ checkEstimation = function(phi_true, phi_est, method_name = "Lasso" ){
                metrics = est_error2) )
 }
 
-getMeanMedianMetrics = function(phi_true, phi_est_all) {
+getMeanMedianMetrics = function(phi_true, phi_est_all, method_name) {
   ## True edges
   N = length(phi_true) 
   count_nonzero = sum(unlist(phi_true) != 0)
@@ -62,8 +59,8 @@ getMeanMedianMetrics = function(phi_true, phi_est_all) {
   est_error[3,1] = method_name
   est_error[1,2] = "REE"
   est_error[1,3] = "SD(REE)" 
-  est_error[1,4] = "Fobinius Norm"
-  est_error[1,5] = "SD(Fobinius Norm)" 
+  est_error[1,4] = "Frobenius Norm"
+  est_error[1,5] = "SD(Frobenius Norm)" 
   
   est_error[1,6] = "TZ"
   est_error[2,6] = count_zero
@@ -107,18 +104,17 @@ getMeanMedianMetrics = function(phi_true, phi_est_all) {
   est_error[3,4] = l2_norm_mean 
   est_error[3,5] = l2_norm_sd 
   
-  est_error[3,6] = count_truezero
-  est_error[3,7] = count_truenonzero
-  est_error[3,8] = count_falsezero
-  est_error[3,9] = count_falsenonzero
+  est_error[3,6] = true_zero_median
+  est_error[3,7] = true_nonzero_median
+  est_error[3,8] = false_zero_median
+  est_error[3,9] = false_nonzero_median
   
   est_error[2:3,2:9] = round(as.numeric(est_error[2:3,2:9]),digits = 3)
-  FPR = count_falsenonzero/(count_falsenonzero+count_truezero)
-  TPR = count_truenonzero/(count_truenonzero+count_falsezero)
+  FPR = false_nonzero_median/(false_nonzero_median+true_zero_median)
+  TPR = true_nonzero_median/(true_nonzero_median+false_zero_median)
   est_error2 = est_error[c(1,3),2:5]
   est_error2 = cbind(est_error2, c("FPR",round(FPR,3)), c("TPR",round(TPR,3)))
   
   return(est_error2)
 }
 
-# xtable(getMeanMedianMetrics)

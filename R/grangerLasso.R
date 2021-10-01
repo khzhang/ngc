@@ -27,18 +27,14 @@ grangerLasso <-
     tp <- dim(X)[3]
 
     useAlasso <- !is.null(weights)
-    Onep = matrix(1,p,(p*d))
+    Onep = Matrix(1,p,(p*d))
     estMat <- array( 0, c(p, p, d) )
 
     ##scale the X matrix
-    for (i in 1:(tp-1))
-    {
-      X[,,i] <- scale( X[,,i] )*sqrt(n/(n-1))
-    }
-
+    X = array(unlist(lapply(1:(tp-1), function(x) scale( X[,,x] )*sqrt(n/(n-1)))), dim = dim(X))
     ##first put all X matrices into one big matrix
     XX <- array2mat(X[,,(tp-d):(tp-1)])
-    YY <- X[,,tp]
+    YY <- Matrix(X[,,tp])
 
     if (!useAlasso)
     {

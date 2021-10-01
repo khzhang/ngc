@@ -60,9 +60,9 @@ function(
 	}
 
 	if (xtnd==1){
-		myMat = matrix(0,d1*d3,d2)
+		myMat = Matrix(0,d1*d3,d2)
 	}else{
-		myMat = matrix(0,d1,d2*d3)
+		myMat = Matrix(0,d1,d2*d3)
 	}
 
 	for(i in 1:d3){
@@ -72,9 +72,9 @@ function(
 		high2 = i*d2
 
 		if (xtnd==1){
-			myMat[low1:high1,] = myArray[,,i]
+			myMat[low1:high1,] = Matrix(myArray[,,i])
 		}else{
-			myMat[,low2:high2] = myArray[,,i]
+			myMat[,low2:high2] = Matrix(myArray[,,i])
 		}
 	}
 
