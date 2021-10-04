@@ -1,4 +1,3 @@
-setwd("/Users/xinyi/Documents/GitHub/network_ngc/R")
 library('microbenchmark')
 source("defn.R")
 source("simulate.r")
