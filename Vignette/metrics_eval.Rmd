@@ -9,9 +9,6 @@ output: html_document
 options(scipen = 1, digits = 2) #set to two decimal 
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE, warning = FALSE)
 ```
-```{r begin, echo=FALSE}
-setwd("/Users/xinyi/Documents/GitHub/ngc/R")
-```
 
 ```{r cars}
 library('microbenchmark')
