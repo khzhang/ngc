@@ -1,4 +1,3 @@
-setwd("/Users/xinyi/Documents/GitHub/ngc/R")
 rm(list =ls())
 source("defn.R")
 source("simulate.r")
