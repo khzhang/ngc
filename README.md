@@ -27,7 +27,7 @@ plot.ngc(fit3)
 
 
 # Demo
-A vignette is available [here](http://htmlpreview.github.io/?https://github.com/khzhang/ngc/blob/main/Vignette/Introduction-to-ngc.html). The vignette gives a tutorial about the `ngc' packages and demonstrates the usage of different arguments. In addition, a comparison between the implemented methods is available [here](Vignette/metrics_eval.html). This file shows the comparison between the implemented estimation methods, including average running time and relative errors. To view these files, you can either download files in your current working directory and open in R, or you can open the html from [Chrome](https://www.google.com/chrome/) or [Firefox](https://www.mozilla.org/firefox/). 
+A vignette is available [here](http://htmlpreview.github.io/?https://github.com/khzhang/ngc/blob/main/Vignette/Introduction-to-ngc.html). The vignette gives a tutorial about the `ngc' packages and demonstrates the usage of different arguments. In addition, a comparison between the implemented methods is available [here](http://htmlpreview.github.io/?https://github.com/khzhang/ngc/blob/9be2b028a62405c8ab4fa262227cf51e48cdbf3e/Vignette/metrics_eval.html). This file shows the comparison between the implemented estimation methods, including average running time and relative errors. To view these files, you can either download files in your current working directory and open in R, or you can open the html from [Chrome](https://www.google.com/chrome/) or [Firefox](https://www.mozilla.org/firefox/). 
 
 
 # Usage
