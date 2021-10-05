@@ -27,7 +27,7 @@ plot.ngc(fit3)
 
 
 # Demo
-A vignette is available [here](Vignette/Introduction-to-ngc.html). The vignette gives a tutorial about the `ngc' packages and demonstrates the usage of different arguments. In addition, a comparison between the implemented methods is available [here](Vignette/metrics_eval.html). This file shows the comparison between the implemented estimation methods, including average running time and relative errors. To view these files, you can either download files in your current working directory and open in R, or you can open the html from [Chrome](https://www.google.com/chrome/) or [Firefox](https://www.mozilla.org/firefox/). 
+A vignette is available [here](http://htmlpreview.github.io/?https://github.com/khzhang/ngc/blob/main/Vignette/Introduction-to-ngc.html). The vignette gives a tutorial about the `ngc' packages and demonstrates the usage of different arguments. In addition, a comparison between the implemented methods is available [here](Vignette/metrics_eval.html). This file shows the comparison between the implemented estimation methods, including average running time and relative errors. To view these files, you can either download files in your current working directory and open in R, or you can open the html from [Chrome](https://www.google.com/chrome/) or [Firefox](https://www.mozilla.org/firefox/). 
 
 
 # Usage
@@ -37,7 +37,7 @@ ngc::ngc()
 ```
 function on the dataset; an example is given [here](demo/demo.R). The data could be either an array with dimension nXpXT or a matrix with dimension pXT. n is the number of observations, p is the number of concurrent time series, and T is the number of time points to be considered. 
 
-There are three main methods with different options. Users can specify the methods to do the estimation. Check vignette (khzhang/ngc/Vignette/Introduction-to-ngc.html) for more details. 
+There are three main methods with different options. Users can specify the methods to do the estimation. Check vignette (http://htmlpreview.github.io/?https://github.com/khzhang/ngc/blob/main/Vignette/Introduction-to-ngc.html) for more details. 
 
 
 # References
